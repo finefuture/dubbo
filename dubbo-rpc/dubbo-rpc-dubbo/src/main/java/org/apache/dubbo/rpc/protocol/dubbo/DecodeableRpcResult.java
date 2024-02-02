@@ -170,16 +170,6 @@ public class DecodeableRpcResult extends AppResponse implements Codec, Decodeabl
 
     private void handleValue(ObjectInput in) throws IOException {
         try {
-//            Type[] returnTypes = RpcUtils.getReturnTypes(invocation);
-//            Object value;
-//            if (ArrayUtils.isEmpty(returnTypes)) {
-//                // happens when generic invoke or void return
-//                value = in.readObject();
-//            } else if (returnTypes.length == 1) {
-//                value = in.readObject((Class<?>) returnTypes[0]);
-//            } else {
-//                value = in.readObject((Class<?>) returnTypes[0], returnTypes[1]);
-//            }
             URL url = invocation.getInvoker().getUrl();
             ConsumerModel consumerModel = (ConsumerModel)
                     (invocation.getServiceModel() != null ? invocation.getServiceModel() : url.getServiceModel());
