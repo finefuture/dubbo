@@ -16,6 +16,7 @@
  */
 package org.apache.dubbo.rpc.protocol.dubbo;
 
+import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.serialize.Cleanable;
@@ -38,9 +39,11 @@ import org.apache.dubbo.rpc.model.FrameworkModel;
 import org.apache.dubbo.rpc.model.FrameworkServiceRepository;
 import org.apache.dubbo.rpc.model.MethodDescriptor;
 import org.apache.dubbo.rpc.model.ModuleModel;
+import org.apache.dubbo.rpc.model.PackableMethod;
 import org.apache.dubbo.rpc.model.ProviderModel;
 import org.apache.dubbo.rpc.model.ServiceDescriptor;
 import org.apache.dubbo.rpc.protocol.PermittedSerializationKeeper;
+import org.apache.dubbo.rpc.service.ServiceDescriptorInternalCache;
 import org.apache.dubbo.rpc.support.RpcUtils;
 
 import java.io.IOException;
@@ -170,9 +173,9 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
                         throw new IllegalArgumentException("Service not found:" + path + ", " + getMethodName());
                     }
                 }
-                args = drawArgs(in, pts);
+                setParameterTypes(pts);
+                args = drawArgs(in);
             }
-            setParameterTypes(pts);
 
             Map<String, Object> map = in.readAttachments();
             if (CollectionUtils.isNotEmptyMap(map)) {
@@ -265,13 +268,31 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
         return pts;
     }
 
-    protected Object[] drawArgs(ObjectInput in, Class<?>[] pts) throws IOException, ClassNotFoundException {
-        Object[] args;
-        args = new Object[pts.length];
-        for (int i = 0; i < args.length; i++) {
-            args[i] = in.readObject(pts[i]);
+    protected Object[] drawArgs(ObjectInput in) throws ClassNotFoundException {
+        URL url = channel.getUrl();
+        ProviderModel providerModel = (ProviderModel)
+            (this.getServiceModel() != null ? this.getServiceModel() : url.getServiceModel());
+        ServiceDescriptor serviceDescriptor = providerModel.getServiceModel();
+        MethodDescriptor methodDescriptor =
+            serviceDescriptor.getMethod(this.getMethodName(), this.getParameterTypes());
+        if (methodDescriptor == null
+            && RpcUtils.isGenericCall((this).getParameterTypesDesc(), this.getMethodName())) {
+            // Only reach when server generic
+            methodDescriptor = ServiceDescriptorInternalCache.genericService()
+                .getMethod(this.getMethodName(), this.getParameterTypes());
         }
-        return args;
+        DubboPackableMethodFactory factory = new DubboPackableMethodFactory();
+        PackableMethod packableMethod = factory.create(methodDescriptor, url, CodecSupport.getNameById(serializationType));
+        try {
+            Object message = packableMethod.parseRequest(in.readBytes());
+            if (message instanceof Object[]) {
+                return (Object[]) message;
+            } else {
+                return new Object[] {message};
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void checkPayload(String serviceKey) throws IOException {

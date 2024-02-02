@@ -16,6 +16,7 @@
  */
 package org.apache.dubbo.rpc.protocol.dubbo;
 
+import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.Version;
 import org.apache.dubbo.common.io.Bytes;
 import org.apache.dubbo.common.io.UnsafeByteArrayInputStream;
@@ -37,7 +38,14 @@ import org.apache.dubbo.rpc.AppResponse;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcInvocation;
+import org.apache.dubbo.rpc.model.ConsumerModel;
 import org.apache.dubbo.rpc.model.FrameworkModel;
+import org.apache.dubbo.rpc.model.MethodDescriptor;
+import org.apache.dubbo.rpc.model.PackableMethod;
+import org.apache.dubbo.rpc.model.ProviderModel;
+import org.apache.dubbo.rpc.model.ServiceDescriptor;
+import org.apache.dubbo.rpc.service.ServiceDescriptorInternalCache;
+import org.apache.dubbo.rpc.support.RpcUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -52,6 +60,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.INTERFACE_KEY;
 import static org.apache.dubbo.common.constants.CommonConstants.PATH_KEY;
 import static org.apache.dubbo.common.constants.CommonConstants.VERSION_KEY;
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.PROTOCOL_FAILED_DECODE;
+import static org.apache.dubbo.rpc.Constants.INVOCATION_KEY;
 import static org.apache.dubbo.rpc.protocol.dubbo.Constants.DEFAULT_DECODE_IN_IO_THREAD;
 
 /**
@@ -293,7 +302,28 @@ public class DubboCodec extends ExchangeCodec {
         Object[] args = inv.getArguments();
         if (args != null) {
             for (int i = 0; i < args.length; i++) {
-                out.writeObject(callbackServiceCodec.encodeInvocationArgument(channel, inv, i));
+                args[i] = callbackServiceCodec.encodeInvocationArgument(channel, inv, i);
+//                out.writeObject(callbackServiceCodec.encodeInvocationArgument(channel, inv, i));
+            }
+            URL url = inv.getInvoker().getUrl();
+            ConsumerModel consumerModel = (ConsumerModel)
+                (inv.getServiceModel() != null ? inv.getServiceModel() : url.getServiceModel());
+            ServiceDescriptor serviceDescriptor = consumerModel.getServiceModel();
+            MethodDescriptor methodDescriptor =
+                serviceDescriptor.getMethod(inv.getMethodName(), inv.getParameterTypes());
+            if (methodDescriptor == null
+                    && RpcUtils.isGenericCall((inv).getParameterTypesDesc(), inv.getMethodName())) {
+                // Only reach when server generic
+                methodDescriptor = ServiceDescriptorInternalCache.genericService()
+                    .getMethod(inv.getMethodName(), inv.getParameterTypes());
+            }
+            DubboPackableMethodFactory factory = new DubboPackableMethodFactory();
+            PackableMethod packableMethod = factory.create(methodDescriptor, url, "");
+            try {
+                byte[] dataBytes = packableMethod.packRequest(args);
+                out.writeBytes(dataBytes);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
         out.writeAttachments(inv.getObjectAttachments());
@@ -312,7 +342,27 @@ public class DubboCodec extends ExchangeCodec {
                 out.writeByte(attach ? RESPONSE_NULL_VALUE_WITH_ATTACHMENTS : RESPONSE_NULL_VALUE);
             } else {
                 out.writeByte(attach ? RESPONSE_VALUE_WITH_ATTACHMENTS : RESPONSE_VALUE);
-                out.writeObject(ret);
+                AppResponse response = (AppResponse) result;
+                RpcInvocation inv = (RpcInvocation) response.getAttribute(INVOCATION_KEY);
+                URL url = channel.getUrl();
+                ProviderModel providerModel = (ProviderModel) url.getServiceModel();
+                ServiceDescriptor serviceDescriptor = providerModel.getServiceModel();
+                MethodDescriptor methodDescriptor =
+                        serviceDescriptor.getMethod(inv.getMethodName(), inv.getParameterTypes());
+                if (methodDescriptor == null
+                        && RpcUtils.isGenericCall((inv).getParameterTypesDesc(), inv.getMethodName())) {
+                    // Only reach when server generic
+                    methodDescriptor = ServiceDescriptorInternalCache.genericService()
+                            .getMethod(inv.getMethodName(), inv.getParameterTypes());
+                }
+                DubboPackableMethodFactory factory = new DubboPackableMethodFactory();
+                PackableMethod packableMethod = factory.create(methodDescriptor, url, "");
+                try {
+                    byte[] dataBytes = packableMethod.packResponse(ret);
+                    out.writeBytes(dataBytes);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
         } else {
             out.writeByte(attach ? RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS : RESPONSE_WITH_EXCEPTION);

@@ -84,6 +84,10 @@ public class CodecSupport {
         return SERIALIZATIONNAME_ID_MAP.get(name);
     }
 
+    public static String getNameById(Byte id) {
+        return ID_SERIALIZATIONNAME_MAP.get(id);
+    }
+
     public static Serialization getSerialization(URL url) {
         return url.getOrDefaultFrameworkModel()
                 .getExtensionLoader(Serialization.class)

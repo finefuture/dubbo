@@ -16,13 +16,13 @@
  */
 package org.apache.dubbo.rpc.protocol.dubbo;
 
+import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.config.Configuration;
 import org.apache.dubbo.common.config.ConfigurationUtils;
 import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.serialize.Cleanable;
 import org.apache.dubbo.common.serialize.ObjectInput;
-import org.apache.dubbo.common.utils.ArrayUtils;
 import org.apache.dubbo.common.utils.Assert;
 import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.remoting.Channel;
@@ -33,12 +33,17 @@ import org.apache.dubbo.remoting.exchange.Response;
 import org.apache.dubbo.remoting.transport.CodecSupport;
 import org.apache.dubbo.rpc.AppResponse;
 import org.apache.dubbo.rpc.Invocation;
+import org.apache.dubbo.rpc.RpcInvocation;
+import org.apache.dubbo.rpc.model.ConsumerModel;
+import org.apache.dubbo.rpc.model.MethodDescriptor;
+import org.apache.dubbo.rpc.model.PackableMethod;
+import org.apache.dubbo.rpc.model.ServiceDescriptor;
+import org.apache.dubbo.rpc.service.ServiceDescriptorInternalCache;
 import org.apache.dubbo.rpc.support.RpcUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Type;
 
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.PROTOCOL_FAILED_DECODE;
 import static org.apache.dubbo.rpc.Constants.SERIALIZATION_ID_KEY;
@@ -165,19 +170,37 @@ public class DecodeableRpcResult extends AppResponse implements Codec, Decodeabl
 
     private void handleValue(ObjectInput in) throws IOException {
         try {
-            Type[] returnTypes = RpcUtils.getReturnTypes(invocation);
-            Object value;
-            if (ArrayUtils.isEmpty(returnTypes)) {
-                // happens when generic invoke or void return
-                value = in.readObject();
-            } else if (returnTypes.length == 1) {
-                value = in.readObject((Class<?>) returnTypes[0]);
-            } else {
-                value = in.readObject((Class<?>) returnTypes[0], returnTypes[1]);
+//            Type[] returnTypes = RpcUtils.getReturnTypes(invocation);
+//            Object value;
+//            if (ArrayUtils.isEmpty(returnTypes)) {
+//                // happens when generic invoke or void return
+//                value = in.readObject();
+//            } else if (returnTypes.length == 1) {
+//                value = in.readObject((Class<?>) returnTypes[0]);
+//            } else {
+//                value = in.readObject((Class<?>) returnTypes[0], returnTypes[1]);
+//            }
+            URL url = invocation.getInvoker().getUrl();
+            ConsumerModel consumerModel = (ConsumerModel)
+                    (invocation.getServiceModel() != null ? invocation.getServiceModel() : url.getServiceModel());
+            ServiceDescriptor serviceDescriptor = consumerModel.getServiceModel();
+            MethodDescriptor methodDescriptor =
+                    serviceDescriptor.getMethod(invocation.getMethodName(), invocation.getParameterTypes());
+            if (methodDescriptor == null
+                    && RpcUtils.isGenericCall(
+                            ((RpcInvocation) invocation).getParameterTypesDesc(), invocation.getMethodName())) {
+                // Only reach when server generic
+                methodDescriptor = ServiceDescriptorInternalCache.genericService()
+                        .getMethod(invocation.getMethodName(), invocation.getParameterTypes());
             }
+            DubboPackableMethodFactory factory = new DubboPackableMethodFactory();
+            PackableMethod packableMethod = factory.create(methodDescriptor, url, CodecSupport.getNameById(serializationType));
+            Object value = packableMethod.parseResponse(in.readBytes());
             setValue(value);
         } catch (ClassNotFoundException e) {
             rethrow(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -199,5 +222,9 @@ public class DecodeableRpcResult extends AppResponse implements Codec, Decodeabl
 
     private void rethrow(Exception e) throws IOException {
         throw new IOException(StringUtils.toString("Read response data failed.", e));
+    }
+
+    public Invocation getInvocation() {
+        return invocation;
     }
 }
