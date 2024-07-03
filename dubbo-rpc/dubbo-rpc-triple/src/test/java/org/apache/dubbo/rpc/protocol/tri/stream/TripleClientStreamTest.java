@@ -84,7 +84,8 @@ class TripleClientStreamTest {
                 ImmediateEventExecutor.INSTANCE,
                 writeQueue,
                 listener,
-                http2StreamChannel);
+                http2StreamChannel,
+                methodDescriptor.getRpcType());
         verify(writeQueue).enqueue(any(CreateStreamQueueCommand.class));
 
         final RequestMetadata requestMetadata = new RequestMetadata();

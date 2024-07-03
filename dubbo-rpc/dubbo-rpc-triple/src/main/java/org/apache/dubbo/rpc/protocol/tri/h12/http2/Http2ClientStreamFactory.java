@@ -19,6 +19,7 @@ package org.apache.dubbo.rpc.protocol.tri.h12.http2;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.remoting.api.connection.AbstractConnectionClient;
 import org.apache.dubbo.rpc.model.FrameworkModel;
+import org.apache.dubbo.rpc.model.MethodDescriptor.RpcType;
 import org.apache.dubbo.rpc.protocol.tri.call.TripleClientCall;
 import org.apache.dubbo.rpc.protocol.tri.stream.ClientStream;
 import org.apache.dubbo.rpc.protocol.tri.stream.ClientStreamFactory;
@@ -37,8 +38,9 @@ public class Http2ClientStreamFactory implements ClientStreamFactory {
             FrameworkModel frameworkModel,
             Executor executor,
             TripleClientCall clientCall,
-            TripleWriteQueue writeQueue) {
+            TripleWriteQueue writeQueue,
+            RpcType rpcType) {
         return new Http2TripleClientStream(
-                frameworkModel, executor, (Channel) client.getChannel(true), clientCall, writeQueue);
+                frameworkModel, executor, (Channel) client.getChannel(true), clientCall, writeQueue, rpcType);
     }
 }

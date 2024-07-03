@@ -21,6 +21,7 @@ import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.rpc.TriRpcStatus;
 import org.apache.dubbo.rpc.model.FrameworkModel;
+import org.apache.dubbo.rpc.model.MethodDescriptor.RpcType;
 import org.apache.dubbo.rpc.protocol.tri.ClassLoadUtil;
 import org.apache.dubbo.rpc.protocol.tri.ExceptionUtils;
 import org.apache.dubbo.rpc.protocol.tri.TripleHeaderEnum;
@@ -83,12 +84,13 @@ public abstract class AbstractTripleClientStream extends AbstractStream implemen
             Executor executor,
             TripleWriteQueue writeQueue,
             ClientStream.Listener listener,
-            Http2StreamChannel http2StreamChannel) {
+            Http2StreamChannel http2StreamChannel,
+            RpcType rpcType) {
         super(executor, frameworkModel);
         this.parent = http2StreamChannel.parent();
         this.listener = listener;
         this.writeQueue = writeQueue;
-        this.streamChannelFuture = initStreamChannel(http2StreamChannel);
+        this.streamChannelFuture = initStreamChannel(http2StreamChannel, rpcType);
     }
 
     protected AbstractTripleClientStream(
@@ -96,15 +98,16 @@ public abstract class AbstractTripleClientStream extends AbstractStream implemen
             Executor executor,
             TripleWriteQueue writeQueue,
             ClientStream.Listener listener,
-            Channel parent) {
+            Channel parent,
+            RpcType rpcType) {
         super(executor, frameworkModel);
         this.parent = parent;
         this.listener = listener;
         this.writeQueue = writeQueue;
-        this.streamChannelFuture = initStreamChannel(parent);
+        this.streamChannelFuture = initStreamChannel(parent, rpcType);
     }
 
-    protected abstract TripleStreamChannelFuture initStreamChannel(Channel parent);
+    protected abstract TripleStreamChannelFuture initStreamChannel(Channel parent, RpcType rpcType);
 
     public ChannelFuture sendHeader(Http2Headers headers) {
         if (this.writeQueue == null) {

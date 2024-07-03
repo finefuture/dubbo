@@ -18,8 +18,8 @@ package org.apache.dubbo.rpc.protocol.tri.h3;
 
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.remoting.api.connection.AbstractConnectionClient;
-import org.apache.dubbo.remoting.transport.netty4.NettyHttp3ConnectionClient;
 import org.apache.dubbo.rpc.model.FrameworkModel;
+import org.apache.dubbo.rpc.model.MethodDescriptor.RpcType;
 import org.apache.dubbo.rpc.protocol.tri.call.TripleClientCall;
 import org.apache.dubbo.rpc.protocol.tri.stream.ClientStream;
 import org.apache.dubbo.rpc.protocol.tri.stream.ClientStreamFactory;
@@ -38,11 +38,9 @@ public class Http3ClientStreamFactory implements ClientStreamFactory {
             FrameworkModel frameworkModel,
             Executor executor,
             TripleClientCall clientCall,
-            TripleWriteQueue writeQueue) {
-        if (client instanceof NettyHttp3ConnectionClient) {
-            return new Http3TripleClientStream(
-                    frameworkModel, executor, (Channel) client.getChannel(true), clientCall, writeQueue);
-        }
-        return null;
+            TripleWriteQueue writeQueue,
+            RpcType rpcType) {
+        return new Http3TripleClientStream(
+                frameworkModel, executor, (Channel) client.getChannel(true), clientCall, writeQueue, rpcType);
     }
 }

@@ -30,7 +30,7 @@ public class SingleProtocolConnectionManager implements ConnectionManager {
 
     private final ConcurrentMap<String, AbstractConnectionClient> connections = new ConcurrentHashMap<>(16);
 
-    private FrameworkModel frameworkModel;
+    private final FrameworkModel frameworkModel;
 
     public SingleProtocolConnectionManager(FrameworkModel frameworkModel) {
         this.frameworkModel = frameworkModel;

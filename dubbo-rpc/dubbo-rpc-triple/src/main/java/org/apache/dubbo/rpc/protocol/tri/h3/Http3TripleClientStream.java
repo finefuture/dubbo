@@ -17,6 +17,7 @@
 package org.apache.dubbo.rpc.protocol.tri.h3;
 
 import org.apache.dubbo.rpc.model.FrameworkModel;
+import org.apache.dubbo.rpc.model.MethodDescriptor.RpcType;
 import org.apache.dubbo.rpc.protocol.tri.command.Http3CreateStreamQueueCommand;
 import org.apache.dubbo.rpc.protocol.tri.stream.AbstractTripleClientStream;
 import org.apache.dubbo.rpc.protocol.tri.stream.ClientStream;
@@ -41,8 +42,9 @@ public final class Http3TripleClientStream extends AbstractTripleClientStream {
             Executor executor,
             Channel parent,
             ClientStream.Listener listener,
-            TripleWriteQueue writeQueue) {
-        super(frameworkModel, executor, writeQueue, listener, parent);
+            TripleWriteQueue writeQueue,
+            RpcType rpcType) {
+        super(frameworkModel, executor, writeQueue, listener, parent, rpcType);
     }
 
     /**
@@ -53,12 +55,13 @@ public final class Http3TripleClientStream extends AbstractTripleClientStream {
             Executor executor,
             TripleWriteQueue writeQueue,
             ClientStream.Listener listener,
-            Http2StreamChannel http2StreamChannel) {
-        super(frameworkModel, executor, writeQueue, listener, http2StreamChannel);
+            Http2StreamChannel http2StreamChannel,
+            RpcType rpcType) {
+        super(frameworkModel, executor, writeQueue, listener, http2StreamChannel, rpcType);
     }
 
     @Override
-    protected TripleStreamChannelFuture initStreamChannel(Channel parent) {
+    protected TripleStreamChannelFuture initStreamChannel(Channel parent, RpcType rpcType) {
         Http3RequestStreamInitializer initializer = new Http3RequestStreamInitializer() {
             @Override
             protected void initRequestStream(QuicStreamChannel ch) {

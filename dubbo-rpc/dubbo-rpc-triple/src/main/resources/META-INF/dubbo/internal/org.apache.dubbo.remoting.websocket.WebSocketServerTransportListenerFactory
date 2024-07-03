@@ -1,0 +1,2 @@
+default=org.apache.dubbo.rpc.protocol.tri.websocket.GenericWebSocketServerTransportListenerFactory
+grpc=org.apache.dubbo.rpc.protocol.tri.websocket.grpc.GrpcWebSocketServerTransportListenerFactory

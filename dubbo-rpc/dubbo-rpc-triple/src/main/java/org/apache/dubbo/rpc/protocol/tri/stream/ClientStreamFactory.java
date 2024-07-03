@@ -20,12 +20,13 @@ import org.apache.dubbo.common.extension.ExtensionScope;
 import org.apache.dubbo.common.extension.SPI;
 import org.apache.dubbo.remoting.api.connection.AbstractConnectionClient;
 import org.apache.dubbo.rpc.model.FrameworkModel;
+import org.apache.dubbo.rpc.model.MethodDescriptor.RpcType;
 import org.apache.dubbo.rpc.protocol.tri.call.TripleClientCall;
 import org.apache.dubbo.rpc.protocol.tri.transport.TripleWriteQueue;
 
 import java.util.concurrent.Executor;
 
-@SPI(scope = ExtensionScope.FRAMEWORK)
+@SPI(scope = ExtensionScope.FRAMEWORK, value = "http2")
 public interface ClientStreamFactory {
 
     ClientStream createClientStream(
@@ -33,5 +34,6 @@ public interface ClientStreamFactory {
             FrameworkModel frameworkModel,
             Executor executor,
             TripleClientCall clientCall,
-            TripleWriteQueue writeQueue);
+            TripleWriteQueue writeQueue,
+            RpcType rpcType);
 }

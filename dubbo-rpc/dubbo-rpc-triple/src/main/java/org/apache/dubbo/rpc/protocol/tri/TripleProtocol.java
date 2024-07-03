@@ -61,6 +61,8 @@ import static org.apache.dubbo.rpc.Constants.H2_SETTINGS_SUPPORT_NO_LOWER_HEADER
 import static org.apache.dubbo.rpc.Constants.H3_SETTINGS_HTTP3_ENABLE;
 import static org.apache.dubbo.rpc.Constants.H3_SETTINGS_SERVLET_ENABLE;
 import static org.apache.dubbo.rpc.Constants.HTTP3_KEY;
+import static org.apache.dubbo.rpc.Constants.TRIPLE_PROTOCOL_KEY;
+import static org.apache.dubbo.rpc.Constants.TRIPLE_SERVLET_KEY;
 
 public class TripleProtocol extends AbstractProtocol {
 
@@ -172,7 +174,7 @@ public class TripleProtocol extends AbstractProtocol {
                 .createExecutorIfAbsent(ExecutorUtil.setThreadName(url, SERVER_THREAD_POOL_NAME));
 
         boolean bindPort = true;
-        if (SERVLET_ENABLED) {
+        if (isServletEnabled(url)) {
             int port = url.getParameter(BIND_PORT_KEY, url.getPort());
             Integer serverPort = ServletExchanger.getServerPort();
             if (serverPort == null) {
@@ -199,6 +201,8 @@ public class TripleProtocol extends AbstractProtocol {
     @Override
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         optimizeSerialization(url);
+        // put triple protocol attribute from rpc context
+        url.putAttribute(TRIPLE_PROTOCOL_KEY, url.getParameter(TRIPLE_PROTOCOL_KEY));
         ExecutorService streamExecutor = getOrCreateStreamExecutor(url.getOrDefaultApplicationModel(), url);
         AbstractConnectionClient connectionClient = isHttp3Enabled(url)
                 ? Http3Exchanger.connect(url)
@@ -237,5 +241,9 @@ public class TripleProtocol extends AbstractProtocol {
 
     public static boolean isHttp3Enabled(URL url) {
         return HTTP3_ENABLED || url.getParameter(HTTP3_KEY, false);
+    }
+
+    public static boolean isServletEnabled(URL url) {
+        return SERVLET_ENABLED || url.getParameter(TRIPLE_SERVLET_KEY, false);
     }
 }

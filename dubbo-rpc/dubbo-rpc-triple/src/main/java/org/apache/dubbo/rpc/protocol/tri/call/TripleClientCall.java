@@ -16,6 +16,7 @@
  */
 package org.apache.dubbo.rpc.protocol.tri.call;
 
+import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.stream.StreamObserver;
@@ -40,9 +41,11 @@ import static io.netty.handler.codec.http2.Http2Error.FLOW_CONTROL_ERROR;
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.PROTOCOL_FAILED_RESPONSE;
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.PROTOCOL_FAILED_SERIALIZE_TRIPLE;
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.PROTOCOL_STREAM_LISTENER;
+import static org.apache.dubbo.rpc.Constants.TRIPLE_PROTOCOL_KEY;
 
 public class TripleClientCall implements ClientCall, ClientStream.Listener {
     private static final ErrorTypeAwareLogger LOGGER = LoggerFactory.getErrorTypeAwareLogger(TripleClientCall.class);
+    private final URL url;
     private final AbstractConnectionClient connectionClient;
     private final Executor executor;
     private final FrameworkModel frameworkModel;
@@ -57,10 +60,12 @@ public class TripleClientCall implements ClientCall, ClientStream.Listener {
     private StreamException streamException;
 
     public TripleClientCall(
+            URL url,
             AbstractConnectionClient connectionClient,
             Executor executor,
             FrameworkModel frameworkModel,
             TripleWriteQueue writeQueue) {
+        this.url = url;
         this.connectionClient = connectionClient;
         this.executor = executor;
         this.frameworkModel = frameworkModel;
@@ -238,17 +243,14 @@ public class TripleClientCall implements ClientCall, ClientStream.Listener {
 
     @Override
     public StreamObserver<Object> start(RequestMetadata metadata, ClientCall.Listener responseListener) {
-        ClientStream stream;
-        for (ClientStreamFactory factory : frameworkModel.getActivateExtensions(ClientStreamFactory.class)) {
-            stream = factory.createClientStream(connectionClient, frameworkModel, executor, this, writeQueue);
-            if (stream != null) {
-                this.requestMetadata = metadata;
-                this.listener = responseListener;
-                this.stream = stream;
-                return new ClientCallToObserverAdapter<>(this);
-            }
-        }
-        throw new IllegalStateException("No available ClientStreamFactory");
+        this.requestMetadata = metadata;
+        this.listener = responseListener;
+        this.stream = frameworkModel
+                .getExtensionLoader(ClientStreamFactory.class)
+                .getOrDefaultExtension(url.getParameter(TRIPLE_PROTOCOL_KEY))
+                .createClientStream(
+                        connectionClient, frameworkModel, executor, this, writeQueue, metadata.method.getRpcType());
+        return new ClientCallToObserverAdapter<>(this);
     }
 
     @Override
