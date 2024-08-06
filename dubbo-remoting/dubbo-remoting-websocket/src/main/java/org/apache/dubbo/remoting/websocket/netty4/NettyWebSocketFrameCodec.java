@@ -94,7 +94,7 @@ public class NettyWebSocketFrameCodec extends ChannelDuplexHandler {
             httpHeaders.set(header.getKey(), header.getValue());
         }
         httpHeaders.set(Http2Headers.PATH.getName(), evt.requestUri());
-        httpHeaders.set(Http2Headers.METHOD.getName(), HttpMethods.GET.name());
+        httpHeaders.set(Http2Headers.METHOD.getName(), HttpMethods.POST.name());
         return new Http2MetadataFrame(httpHeaders);
     }
 
