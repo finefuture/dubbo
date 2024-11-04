@@ -21,8 +21,9 @@ import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.utils.ConcurrentHashSet;
 import org.apache.dubbo.remoting.http12.HttpMethods;
 
+import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.GenericFilter;
+import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -43,7 +44,7 @@ import static org.apache.dubbo.rpc.protocol.tri.TripleConstants.UPGRADE_HEADER_K
 import static org.apache.dubbo.rpc.protocol.tri.websocket.WebSocketConstants.TRIPLE_WEBSOCKET_REMOTE_ADDRESS;
 import static org.apache.dubbo.rpc.protocol.tri.websocket.WebSocketConstants.TRIPLE_WEBSOCKET_UPGRADE_HEADER_VALUE;
 
-public class TripleWebSocketFilter extends GenericFilter {
+public class TripleWebSocketFilter implements Filter {
 
     private static final ErrorTypeAwareLogger LOG = LoggerFactory.getErrorTypeAwareLogger(TripleWebSocketFilter.class);
 
@@ -52,8 +53,8 @@ public class TripleWebSocketFilter extends GenericFilter {
     private final Set<String> existed = new ConcurrentHashSet<>();
 
     @Override
-    public void init() {
-        sc = (ServerContainer) getServletContext().getAttribute(ServerContainer.class.getName());
+    public void init(FilterConfig filterConfig) {
+        sc = (ServerContainer) filterConfig.getServletContext().getAttribute(ServerContainer.class.getName());
     }
 
     @Override
@@ -98,6 +99,9 @@ public class TripleWebSocketFilter extends GenericFilter {
         }
         chain.doFilter(wrappedRequest, hResponse);
     }
+
+    @Override
+    public void destroy() {}
 
     public boolean isWebSocketUpgradeRequest(ServletRequest request, ServletResponse response) {
         return ((request instanceof HttpServletRequest)
