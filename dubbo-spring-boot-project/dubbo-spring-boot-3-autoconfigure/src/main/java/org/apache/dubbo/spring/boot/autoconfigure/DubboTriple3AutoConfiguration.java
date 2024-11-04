@@ -65,9 +65,9 @@ public class DubboTriple3AutoConfiguration {
 
         @Bean
         @ConditionalOnClass(Http2Protocol.class)
-        @ConditionalOnProperty(prefix = PREFIX, name = "max-concurrent-streams")
+        @ConditionalOnProperty(prefix = SERVLET_PREFIX, name = "max-concurrent-streams")
         public WebServerFactoryCustomizer<ConfigurableTomcatWebServerFactory> tripleTomcatHttp2Customizer(
-                @Value("${" + PREFIX + ".max-concurrent-streams}") int maxConcurrentStreams) {
+                @Value("${" + SERVLET_PREFIX + ".max-concurrent-streams}") int maxConcurrentStreams) {
             return factory -> factory.addConnectorCustomizers(connector -> {
                 ProtocolHandler handler = connector.getProtocolHandler();
                 for (UpgradeProtocol upgradeProtocol : handler.findUpgradeProtocols()) {
@@ -85,7 +85,7 @@ public class DubboTriple3AutoConfiguration {
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(Filter.class)
     @ConditionalOnWebApplication(type = Type.SERVLET)
-    @ConditionalOnProperty(prefix = WEBSOCKET_PREFIX, name = "enabled")
+    @ConditionalOnProperty(prefix = WEBSOCKET_PREFIX, name = "enabled", havingValue = "true")
     public static class TripleWebSocketConfiguration {
 
         @Bean
