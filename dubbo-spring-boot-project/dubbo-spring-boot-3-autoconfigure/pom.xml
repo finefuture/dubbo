@@ -68,6 +68,13 @@
     </dependency>
 
     <dependency>
+      <groupId>org.apache.dubbo</groupId>
+      <artifactId>dubbo-triple-websocket</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
       <groupId>jakarta.servlet</groupId>
       <artifactId>jakarta.servlet-api</artifactId>
       <scope>provided</scope>
@@ -81,13 +88,13 @@
     <dependency>
       <groupId>jakarta.websocket</groupId>
       <artifactId>jakarta.websocket-api</artifactId>
-      <optional>true</optional>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>jakarta.websocket</groupId>
       <artifactId>jakarta.websocket-client-api</artifactId>
-      <optional>true</optional>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 </project>
