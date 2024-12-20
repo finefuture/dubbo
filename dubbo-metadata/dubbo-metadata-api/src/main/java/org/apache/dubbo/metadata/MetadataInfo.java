@@ -79,6 +79,7 @@ public class MetadataInfo implements Serializable {
     private transient ConcurrentNavigableMap<String, SortedSet<URL>> subscribedServiceURLs;
     private transient ConcurrentNavigableMap<String, SortedSet<URL>> exportedServiceURLs;
     private transient ExtensionLoader<MetadataParamsFilter> loader;
+    private transient volatile boolean remoteLoaded = false;
 
     public MetadataInfo() {
         this(null);
@@ -486,6 +487,14 @@ public class MetadataInfo implements Serializable {
     private Object readResolve() {
         // create a new object from the deserialized one, in order to call constructor
         return new MetadataInfo(this.app, this.revision, this.services);
+    }
+
+    public boolean isRemoteLoaded() {
+        return remoteLoaded;
+    }
+
+    public void setRemoteLoaded(boolean remoteLoaded) {
+        this.remoteLoaded = remoteLoaded;
     }
 
     public static class ServiceInfo implements Serializable {

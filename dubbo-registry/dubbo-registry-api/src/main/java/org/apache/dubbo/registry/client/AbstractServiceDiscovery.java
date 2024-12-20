@@ -235,7 +235,7 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
     public MetadataInfo getRemoteMetadata(String revision, List<ServiceInstance> instances) {
         MetadataInfo metadata = metaCacheManager.get(revision);
 
-        if (metadata != null && metadata != MetadataInfo.EMPTY) {
+        if (metadata != null && metadata != MetadataInfo.EMPTY && metadata.isRemoteLoaded()) {
             metadata.init();
             // metadata loaded from cache
             if (logger.isDebugEnabled()) {
@@ -279,6 +279,7 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
                         "Failed to get metadata for revision after 3 retries, revision=" + revision);
             } else {
                 metaCacheManager.put(revision, metadata);
+                metadata.setRemoteLoaded(true);
             }
         }
         return metadata;
