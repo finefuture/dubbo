@@ -740,12 +740,12 @@ public interface CommonConstants {
 
         /**
          * The property name for {@link NetworkInterface#isPointToPoint() return whether a network interface is a point
-         * to point interface} that the Dubbo application will determine whether to enable the point-to-point network
+         * to point interface} that the Dubbo application will determine whether to ignore the point-to-point network
          * interface
          *
          * @since 3.3
          */
-        String DUBBO_NETWORK_INTERFACE_POINT_TO_POINT_ENABLE = "dubbo.network.interface.point-to-point.enable";
+        String DUBBO_NETWORK_INTERFACE_POINT_TO_POINT_IGNORED = "dubbo.network.interface.point-to-point.ignored";
 
         String DUBBO_CLASS_DESERIALIZE_ALLOWED_LIST = "dubbo.security.serialize.allowedClassList";
         String DUBBO_CLASS_DESERIALIZE_BLOCKED_LIST = "dubbo.security.serialize.blockedClassList";
