@@ -65,7 +65,10 @@ public abstract class AbstractCacheManager<V> implements Disposable {
             for (Map.Entry<String, String> entry : properties.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
-                this.cache.put(key, toValueType(value));
+                V v = toValueType(value);
+                if (validate(v)) {
+                    cache.put(key, v);
+                }
             }
             // executorService can be empty if FileCacheStore fails
             if (executorService == null) {
@@ -88,6 +91,10 @@ public abstract class AbstractCacheManager<V> implements Disposable {
     protected abstract V toValueType(String value);
 
     protected abstract String getName();
+
+    protected boolean validate(V value) {
+        return value != null;
+    }
 
     public V get(String key) {
         return cache.get(key);

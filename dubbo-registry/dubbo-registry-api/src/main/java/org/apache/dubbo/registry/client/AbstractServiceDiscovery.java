@@ -80,8 +80,6 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
 
     protected ApplicationModel applicationModel;
 
-    private final Set<String> remoteLoadedMetadataVersions = new ConcurrentHashSet<>();
-
     public AbstractServiceDiscovery(ApplicationModel applicationModel, URL registryURL) {
         this(applicationModel, applicationModel.getApplicationName(), registryURL);
         MetadataReportInstance metadataReportInstance =
@@ -236,15 +234,51 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
     @Override
     public MetadataInfo getRemoteMetadata(String revision, List<ServiceInstance> instances) {
         MetadataInfo metadata = metaCacheManager.get(revision);
-        if (!remoteLoadedMetadataVersions.contains(revision) || metadata == null || metadata == MetadataInfo.EMPTY) {
-            metadata = loadRemoteMetadata(revision, instances);
-        }
 
         if (metadata != null && metadata != MetadataInfo.EMPTY) {
             metadata.init();
             // metadata loaded from cache
             if (logger.isDebugEnabled()) {
                 logger.debug("MetadataInfo for revision=" + revision + ", " + metadata);
+            }
+            return metadata;
+        }
+
+        synchronized (metaCacheManager) {
+            // try to load metadata from remote.
+            int triedTimes = 0;
+            while (triedTimes < 3) {
+
+                metadata = MetricsEventBus.post(
+                        MetadataEvent.toSubscribeEvent(applicationModel),
+                        () -> MetadataUtils.getRemoteMetadata(revision, instances, metadataReport),
+                        result -> result != MetadataInfo.EMPTY);
+
+                if (metadata != MetadataInfo.EMPTY) { // succeeded
+                    metadata.init();
+                    break;
+                } else { // failed
+                    if (triedTimes > 0) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Retry the " + triedTimes + " times to get metadata for revision=" + revision);
+                        }
+                    }
+                    triedTimes++;
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
+
+            if (metadata == MetadataInfo.EMPTY) {
+                logger.error(
+                        REGISTRY_FAILED_LOAD_METADATA,
+                        "",
+                        "",
+                        "Failed to get metadata for revision after 3 retries, revision=" + revision);
+            } else {
+                metaCacheManager.put(revision, metadata);
             }
         }
         return metadata;
@@ -395,49 +429,6 @@ public abstract class AbstractServiceDiscovery implements ServiceDiscovery {
             stringBuilder.append(url.getBackupAddress());
         }
         return stringBuilder.toString();
-    }
-
-    private MetadataInfo loadRemoteMetadata(String revision, List<ServiceInstance> instances) {
-        MetadataInfo metadata = null;
-        synchronized (metaCacheManager) {
-            // try to load metadata from remote.
-            int triedTimes = 0;
-            while (triedTimes < 3) {
-
-                metadata = MetricsEventBus.post(
-                        MetadataEvent.toSubscribeEvent(applicationModel),
-                        () -> MetadataUtils.getRemoteMetadata(revision, instances, metadataReport),
-                        result -> result != MetadataInfo.EMPTY);
-
-                if (metadata != MetadataInfo.EMPTY) { // succeeded
-                    metadata.init();
-                    break;
-                } else { // failed
-                    if (triedTimes > 0) {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Retry the " + triedTimes + " times to get metadata for revision=" + revision);
-                        }
-                    }
-                    triedTimes++;
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                    }
-                }
-            }
-
-            if (metadata == MetadataInfo.EMPTY) {
-                logger.error(
-                        REGISTRY_FAILED_LOAD_METADATA,
-                        "",
-                        "",
-                        "Failed to get metadata for revision after 3 retries, revision=" + revision);
-            } else {
-                metaCacheManager.put(revision, metadata);
-                remoteLoadedMetadataVersions.add(revision);
-            }
-        }
-        return metadata;
     }
 
     private static class MetadataInfoStat {
