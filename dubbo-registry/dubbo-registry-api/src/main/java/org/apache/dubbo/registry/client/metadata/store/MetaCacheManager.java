@@ -79,11 +79,11 @@ public class MetaCacheManager extends AbstractCacheManager<MetadataInfo> {
     }
 
     @Override
-    protected boolean validate(MetadataInfo value) {
-        if (!super.validate(value)) {
+    protected boolean validate(String key, MetadataInfo value) {
+        if (!super.validate(key, value)) {
             return false;
         }
         String revision = value.calRevision();
-        return Objects.equals(value.getRevision(), revision);
+        return Objects.equals(key, revision);
     }
 }
