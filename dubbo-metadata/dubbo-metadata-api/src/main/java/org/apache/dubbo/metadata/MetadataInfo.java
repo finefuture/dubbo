@@ -207,7 +207,7 @@ public class MetadataInfo implements Serializable {
         return revision;
     }
 
-    public String calRevision() {
+    public synchronized String calRevision() {
         StringBuilder sb = new StringBuilder();
         sb.append(app);
         for (Map.Entry<String, ServiceInfo> entry : new TreeMap<>(services).entrySet()) {
